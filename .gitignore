@@ -1,0 +1,25 @@
+# ── Gas Town agent overlay (infra — DO NOT REMOVE) ──
+# These files are injected into every worktree by Gas Town. They must stay
+# ignored so `gt done`'s auto-commit does not refuse on untracked overlay.
+.beads/
+.claude/
+.runtime/
+.logs/
+.archive/
+.land-worktree/
+.repo.git/
+.dolt/
+.beads-credential-key
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+config.json
+state.json
+
+# ── Project ──
+.env
+db/finally.db
+node_modules/
+.next/
+__pycache__/
+.venv/
