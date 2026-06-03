@@ -1,0 +1,6 @@
+# This file keeps the top-level `db/` directory present in the repository.
+#
+# `db/` is the runtime volume mount target. At runtime the backend creates and
+# writes the SQLite database to `db/finally.db` (gitignored). In Docker this
+# directory maps to `/app/db` via a named volume so data persists across
+# container restarts.
