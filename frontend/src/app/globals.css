@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg-base text-text-primary font-mono antialiased;
+  }
+
+  /* Thin terminal-style scrollbars for the dense panels. */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-muted rounded;
+  }
+}
+
+@layer components {
+  /* Shared panel chrome for the dashboard regions. */
+  .panel {
+    @apply bg-bg-panel border border-border-muted rounded-md flex flex-col overflow-hidden;
+  }
+  .panel-header {
+    @apply flex items-center justify-between px-3 py-2 border-b border-border-subtle text-xs uppercase tracking-wider text-text-muted;
+  }
+  .panel-body {
+    @apply flex-1 overflow-auto p-3 text-sm;
+  }
+}
