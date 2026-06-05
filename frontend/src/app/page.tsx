@@ -55,6 +55,8 @@ export default function Home() {
           </div>
         </main>
 
+        {/* ChatSidebar exposes onActionsApplied(); the portfolio/watchlist
+            panels will pass a refresh callback once their data layers land. */}
         <ChatSidebar />
       </div>
 
