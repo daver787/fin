@@ -4,8 +4,9 @@
 // (fin-7hni) lays out the regions and wires the live price stream + connection
 // status; each region's full behavior is filled in by its own follow-up issue.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useEventSource } from "@/hooks/useEventSource";
+import { usePriceHistory } from "@/hooks/usePriceHistory";
 import { Header } from "@/components/Header";
 import { Watchlist } from "@/components/Watchlist";
 import { MainChart } from "@/components/MainChart";
@@ -16,10 +17,18 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 
 export default function Home() {
   const { prices, connection } = useEventSource();
+  const history = usePriceHistory(prices);
 
   // Shared selection state: clicking a ticker in the watchlist drives the main
   // chart (SPEC §10). Owned here so any region can read/update the selection.
+  // Auto-select the first ticker that arrives so the chart is never empty once
+  // the stream is flowing (fin-novp).
   const [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => {
+    if (selected !== null) return;
+    const first = Object.keys(prices).sort()[0];
+    if (first) setSelected(first);
+  }, [prices, selected]);
 
   // Portfolio totals are owned by the portfolio issue; the header shows live
   // placeholders until that data layer is wired in.
@@ -46,7 +55,11 @@ export default function Home() {
           </div>
 
           <div className="grid min-h-0 grid-rows-[minmax(0,2fr)_minmax(0,1fr)] gap-2">
-            <MainChart selected={selected} />
+            <MainChart
+              selected={selected}
+              series={(selected && history[selected]) || []}
+              tick={selected ? prices[selected] : undefined}
+            />
             <PortfolioViz />
           </div>
 
