@@ -8,19 +8,41 @@ the skeleton and the system endpoints.
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from app.config import settings
 from app.db.init import init_db
+from app.portfolio import router as portfolio_router
+from app.portfolio.snapshots import record_snapshot_now, snapshot_loop
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Lazy DB init (SPEC §7): create schema + seed defaults if absent.
     init_db()
-    yield
+
+    # Seed the P&L series with a baseline point, then snapshot every 30s
+    # (SPEC §8). Trades record their own snapshot immediately.
+    try:
+        record_snapshot_now()
+    except Exception:  # pragma: no cover - never block startup on a snapshot
+        logger.exception("Failed to record initial portfolio snapshot")
+    snapshot_task = asyncio.create_task(snapshot_loop())
+
+    try:
+        yield
+    finally:
+        snapshot_task.cancel()
+        try:
+            await snapshot_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
@@ -29,6 +51,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.include_router(portfolio_router)
 
 
 @app.get("/api/health", tags=["system"])
