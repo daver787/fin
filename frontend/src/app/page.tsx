@@ -4,9 +4,11 @@
 // (fin-7hni) lays out the regions and wires the live price stream + connection
 // status; each region's full behavior is filled in by its own follow-up issue.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEventSource } from "@/hooks/useEventSource";
 import { usePriceHistory } from "@/hooks/usePriceHistory";
+import { usePortfolio } from "@/hooks/usePortfolio";
+import { applyLivePrices, liveTotalValue } from "@/lib/portfolio";
 import { Header } from "@/components/Header";
 import { Watchlist } from "@/components/Watchlist";
 import { MainChart } from "@/components/MainChart";
@@ -17,7 +19,11 @@ import { ChatSidebar } from "@/components/ChatSidebar";
 
 export default function Home() {
   const { prices, connection } = useEventSource();
-  const history = usePriceHistory(prices);
+  // Two distinct histories: priceHistory is the per-ticker live series the main
+  // chart accumulates from the SSE stream (fin-novp); portfolio.history is the
+  // portfolio value snapshots driving the P&L chart (fin-vc7p).
+  const priceHistory = usePriceHistory(prices);
+  const { portfolio, history } = usePortfolio();
 
   // Shared selection state: clicking a ticker in the watchlist drives the main
   // chart (SPEC §10). Owned here so any region can read/update the selection.
@@ -30,10 +36,14 @@ export default function Home() {
     if (first) setSelected(first);
   }, [prices, selected]);
 
-  // Portfolio totals are owned by the portfolio issue; the header shows live
-  // placeholders until that data layer is wired in.
-  const totalValue = null;
-  const cashBalance = null;
+  // Keep the header total ticking with live prices between portfolio refetches;
+  // cash is fixed until the next fetch, but position values move with the stream.
+  const cashBalance = portfolio?.cash_balance ?? null;
+  const totalValue = useMemo(() => {
+    if (!portfolio) return null;
+    const live = applyLivePrices(portfolio.positions, prices);
+    return liveTotalValue(live, portfolio.cash_balance);
+  }, [portfolio, prices]);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -57,14 +67,18 @@ export default function Home() {
           <div className="grid min-h-0 grid-rows-[minmax(0,2fr)_minmax(0,1fr)] gap-2">
             <MainChart
               selected={selected}
-              series={(selected && history[selected]) || []}
+              series={(selected && priceHistory[selected]) || []}
               tick={selected ? prices[selected] : undefined}
             />
-            <PortfolioViz />
+            <PortfolioViz
+              portfolio={portfolio}
+              history={history}
+              prices={prices}
+            />
           </div>
 
           <div className="flex min-h-0 flex-col">
-            <PositionsTable />
+            <PositionsTable portfolio={portfolio} prices={prices} />
           </div>
         </main>
 
