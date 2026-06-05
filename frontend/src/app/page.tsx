@@ -1,10 +1,13 @@
 "use client";
 
-// App shell (SPEC §10): a dense, terminal-style grid. This foundation issue
-// (fin-7hni) lays out the regions and wires the live price stream + connection
-// status; each region's full behavior is filled in by its own follow-up issue.
+// App shell (SPEC §10): a dense, terminal-style grid. The foundation issue
+// (fin-7hni) laid out the regions and wired the live price stream + connection
+// status; the trade-bar issue (fin-fxyu) adds the shared portfolio state so the
+// header totals and trade bar stay in sync. Each region's full behavior is
+// filled in by its own follow-up issue.
 
 import { useEventSource } from "@/hooks/useEventSource";
+import { PortfolioProvider, usePortfolio } from "@/hooks/usePortfolio";
 import { Header } from "@/components/Header";
 import { Watchlist } from "@/components/Watchlist";
 import { MainChart } from "@/components/MainChart";
@@ -13,19 +16,15 @@ import { PositionsTable } from "@/components/PositionsTable";
 import { TradeBar } from "@/components/TradeBar";
 import { ChatSidebar } from "@/components/ChatSidebar";
 
-export default function Home() {
+function Dashboard() {
   const { prices, connection } = useEventSource();
-
-  // Portfolio totals are owned by the portfolio issue; the header shows live
-  // placeholders until that data layer is wired in.
-  const totalValue = null;
-  const cashBalance = null;
+  const { portfolio } = usePortfolio();
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <Header
-        totalValue={totalValue}
-        cashBalance={cashBalance}
+        totalValue={portfolio?.total_value ?? null}
+        cashBalance={portfolio?.cash_balance ?? null}
         connection={connection}
       />
 
@@ -51,5 +50,13 @@ export default function Home() {
 
       <TradeBar />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <PortfolioProvider>
+      <Dashboard />
+    </PortfolioProvider>
   );
 }
