@@ -84,13 +84,17 @@ async def run_feed(source: MarketDataSource, cache: PriceCache) -> None:
         await asyncio.sleep(source.poll_interval)
 
 
-def start_market_data() -> asyncio.Task:
+def start_market_data() -> asyncio.Task | None:
     """Start the background feed and register the live price provider.
 
     Primes the cache with each source's starting price so consumers have data
     immediately, registers the cache as the trade-fill price provider, then
     launches the feed loop. Returns the loop task for the caller to cancel on
     shutdown.
+
+    When ``settings.market_data_live`` is false the cache is still seeded and the
+    price provider registered, but the evolving feed loop is not launched — so
+    prices stay frozen at their seed values. Returns ``None`` in that case.
     """
     global _task
 
@@ -104,6 +108,14 @@ def start_market_data() -> asyncio.Task:
             _cache.update(ticker, price)
 
     set_price_provider(_cache.latest_price)
+
+    if not settings.market_data_live:
+        logger.info(
+            "Market-data feed disabled (market_data_live=false); cache seeded "
+            "with %d static prices", len(tickers)
+        )
+        _task = None
+        return None
 
     _task = asyncio.create_task(run_feed(source, _cache))
     logger.info("Market-data feed started for %d tickers", len(tickers))

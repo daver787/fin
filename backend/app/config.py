@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # --- Market data (SPEC §6) ---
     # If set and non-empty, the Massive API is used; otherwise the simulator.
     massive_api_key: str = ""
+    # When false, startup seeds the price cache with static seed prices but does
+    # NOT launch the background feed that evolves them. Trades then fill at the
+    # deterministic seed price — used by the test suite so route assertions are
+    # exact (and available to anyone wanting a frozen market).
+    market_data_live: bool = True
 
     # --- Database (SPEC §7) ---
     # SQLite file location. Defaults to <project_root>/db/finally.db so the
