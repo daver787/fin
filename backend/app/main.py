@@ -16,6 +16,7 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.db.init import init_db
+from app.market import start_market_data, stop_market_data
 from app.portfolio import router as portfolio_router
 from app.portfolio.snapshots import record_snapshot_now, snapshot_loop
 
@@ -26,6 +27,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Lazy DB init (SPEC §7): create schema + seed defaults if absent.
     init_db()
+
+    # Launch the market-data feed (SPEC §6): a single background task evolves
+    # prices into the shared cache and becomes the live trade-fill price source.
+    start_market_data()
 
     # Seed the P&L series with a baseline point, then snapshot every 30s
     # (SPEC §8). Trades record their own snapshot immediately.
@@ -43,6 +48,7 @@ async def lifespan(app: FastAPI):
             await snapshot_task
         except asyncio.CancelledError:
             pass
+        await stop_market_data()
 
 
 app = FastAPI(
