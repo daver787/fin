@@ -11,16 +11,26 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
+from app.chat import router as chat_router
 from app.config import settings
-from app.db.init import init_db
+from app.db.init import init_db, reset_db
 from app.market import start_market_data, stop_market_data
 from app.portfolio import router as portfolio_router
 from app.portfolio.snapshots import record_snapshot_now, snapshot_loop
+from app.stream import router as stream_router
+from app.watchlist import router as watchlist_router
 
 logger = logging.getLogger(__name__)
+
+# Where the built Next.js static export lives (SPEC §3 — FastAPI serves the
+# frontend from the same origin). The Dockerfile copies the export here; in
+# local dev it is frontend/out after `npm run build`.
+FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "out"
 
 
 @asynccontextmanager
@@ -59,6 +69,9 @@ app = FastAPI(
 )
 
 app.include_router(portfolio_router)
+app.include_router(watchlist_router)
+app.include_router(stream_router)
+app.include_router(chat_router)
 
 
 @app.get("/api/health", tags=["system"])
@@ -67,5 +80,28 @@ def health() -> dict[str, str]:
     return {
         "status": "ok",
         "market_data": "massive" if settings.use_massive else "simulator",
-        "llm_mock": str(settings.llm_mock).lower(),
+        "llm_mock": str(settings.use_mock_llm).lower(),
     }
+
+
+# Test-only state reset for E2E isolation (each test starts from the fresh
+# seed). Registered only when explicitly enabled — never present in production.
+if settings.enable_test_reset:
+
+    @app.post("/api/test/reset", tags=["system"])
+    def test_reset() -> dict[str, str]:
+        reset_db()
+        return {"status": "reset"}
+
+
+# Serve the built frontend from the same origin (SPEC §3). Mounted last so every
+# /api/* route is matched first; this catch-all handles the SPA and its assets.
+# Absent in a backend-only checkout (no build yet) — the API still runs.
+if FRONTEND_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
+else:  # pragma: no cover - depends on whether the frontend has been built
+    logger.warning(
+        "Frontend export not found at %s; serving API only. Build the frontend "
+        "(npm run build) or use the Docker image.",
+        FRONTEND_DIST,
+    )

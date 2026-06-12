@@ -80,3 +80,42 @@ def init_db() -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+# Tables holding mutable per-user state, cleared by reset_db (test-only).
+_RESETTABLE_TABLES = (
+    "trades",
+    "positions",
+    "portfolio_snapshots",
+    "chat_messages",
+    "watchlist",
+    "users_profile",
+)
+
+
+def reset_db() -> None:
+    """Wipe all mutable state and re-seed defaults (test isolation only).
+
+    Used by the guarded ``/api/test/reset`` endpoint so each E2E test starts
+    from the fresh seed ($10k cash, default watchlist, no positions). Never
+    exposed in production.
+    """
+    conn = connect()
+    try:
+        create_schema(conn)
+        for table in _RESETTABLE_TABLES:
+            conn.execute(f"DELETE FROM {table}")
+        conn.commit()
+    finally:
+        conn.close()
+    seed_defaults_into_fresh()
+
+
+def seed_defaults_into_fresh() -> None:
+    """Re-seed the default user and watchlist after a wipe."""
+    conn = connect()
+    try:
+        seed_defaults(conn)
+        conn.commit()
+    finally:
+        conn.close()

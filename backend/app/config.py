@@ -26,8 +26,14 @@ class Settings(BaseSettings):
 
     # --- LLM (SPEC §9) ---
     openrouter_api_key: str = ""
-    # When true, the chat backend returns deterministic mock responses.
+    # When true, the chat backend returns deterministic mock responses. Mock
+    # mode is also used automatically when no API key is configured, so the app
+    # is fully functional on first launch without any secrets.
     llm_mock: bool = False
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    # Fast, capable default routed through OpenRouter (SPEC §9 — Cerebras for
+    # fast inference). Override via OPENROUTER_MODEL.
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct"
 
     # --- Market data (SPEC §6) ---
     # If set and non-empty, the Massive API is used; otherwise the simulator.
@@ -37,6 +43,11 @@ class Settings(BaseSettings):
     # deterministic seed price — used by the test suite so route assertions are
     # exact (and available to anyone wanting a frozen market).
     market_data_live: bool = True
+
+    # --- Testing ---
+    # Exposes POST /api/test/reset to wipe + re-seed state for E2E isolation.
+    # Off by default; enabled only by the test harness. Never enable in prod.
+    enable_test_reset: bool = False
 
     # --- Database (SPEC §7) ---
     # SQLite file location. Defaults to <project_root>/db/finally.db so the
@@ -54,6 +65,15 @@ class Settings(BaseSettings):
     def use_massive(self) -> bool:
         """True when a non-empty Massive API key is configured."""
         return bool(self.massive_api_key.strip())
+
+    @property
+    def use_mock_llm(self) -> bool:
+        """True when the chat backend should use deterministic mock responses.
+
+        Explicitly via ``LLM_MOCK=true``, or implicitly when no OpenRouter key
+        is configured (so the assistant still works without secrets).
+        """
+        return self.llm_mock or not self.openrouter_api_key.strip()
 
 
 # Shared singleton — import this everywhere config is needed.

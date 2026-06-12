@@ -114,7 +114,7 @@ export function Watchlist({ prices, selected, onSelect }: WatchlistProps) {
         <input
           value={addValue}
           onChange={(e) => setAddValue(e.target.value)}
-          placeholder="Add ticker…"
+          placeholder="Add symbol…"
           aria-label="Add ticker to watchlist"
           maxLength={8}
           className="min-w-0 flex-1 rounded border border-border-muted bg-bg-base px-2 py-1 text-xs uppercase text-text-primary placeholder:text-text-faint focus:border-accent-blue focus:outline-none"

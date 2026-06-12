@@ -21,6 +21,7 @@ services:
       LLM_MOCK: "true"
       MASSIVE_API_KEY: "" # empty -> built-in market simulator
       OPENROUTER_API_KEY: "" # unused under LLM_MOCK
+      ENABLE_TEST_RESET: "true" # exposes /api/test/reset for per-test isolation
     expose:
       - "8000"
     # Use a tmpfs/ephemeral DB so every test run starts from the fresh seed

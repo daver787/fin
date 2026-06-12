@@ -1,0 +1,22 @@
+# Build artifacts and local state that must not enter the image context.
+**/node_modules
+**/.next
+frontend/out
+**/.venv
+**/__pycache__
+**/*.pyc
+db/*.db
+db/*.db-*
+.env
+.git
+test/node_modules
+test/playwright-report
+test/test-results
+
+# Gas Town overlay files (present only in the agent workspace).
+.beads
+.claude
+.runtime
+CLAUDE.md
+AGENTS.md
+planning

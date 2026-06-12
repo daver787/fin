@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../support/fixtures";
 import { gotoApp, waitForStream, getPortfolio } from "../support/helpers";
 
 // SPEC §12 — AI chat (mocked, LLM_MOCK=true): send a message, receive a

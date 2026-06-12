@@ -17,6 +17,17 @@ function fmtUsd(value: number | null): string {
   });
 }
 
+// The hero total is shown to whole dollars: it ticks live with the price stream,
+// so sub-dollar precision would just be visual noise. (Cash keeps cents.)
+function fmtUsdWhole(value: number | null): string {
+  if (value === null) return "—";
+  return value.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
 /** Top bar (SPEC §10): portfolio total value, cash balance, connection dot. */
 export function Header({ totalValue, cashBalance, connection }: HeaderProps) {
   return (
@@ -29,7 +40,7 @@ export function Header({ totalValue, cashBalance, connection }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-6">
-        <Metric label="Total Value" value={fmtUsd(totalValue)} accent />
+        <Metric label="Total Value" value={fmtUsdWhole(totalValue)} accent />
         <Metric label="Cash" value={fmtUsd(cashBalance)} />
         <ConnectionDot state={connection} />
       </div>

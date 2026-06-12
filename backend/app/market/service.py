@@ -32,10 +32,34 @@ _cache = PriceCache()
 # Handle to the running feed loop so startup/shutdown can manage its lifecycle.
 _task: asyncio.Task | None = None
 
+# The live source, kept so the watchlist layer can extend the tracked tickers
+# at runtime (adding a symbol makes the feed start producing prices for it).
+_source: MarketDataSource | None = None
+
 
 def get_cache() -> PriceCache:
     """Return the shared price cache (read by SSE streaming and pricing)."""
     return _cache
+
+
+def add_ticker(ticker: str) -> None:
+    """Begin tracking ``ticker`` in the live feed and prime its cache entry.
+
+    Called when a ticker is added to the watchlist so its price starts
+    streaming immediately. Safe to call before the feed has started; the
+    cache is seeded so the first SSE read / portfolio price has a value.
+    """
+    symbol = ticker.strip().upper()
+    if not symbol:
+        return
+    if _source is not None:
+        _source.add_ticker(symbol)
+    # Seed the cache so consumers see a price before the next feed tick. The
+    # GBM simulator seeds unknown symbols at a sane default; mirror that here.
+    if _cache.get(symbol) is None:
+        from app.market.simulator import seed_price_for
+
+        _cache.update(symbol, seed_price_for(symbol))
 
 
 def load_watchlist_tickers() -> list[str]:
@@ -71,8 +95,14 @@ async def run_feed(source: MarketDataSource, cache: PriceCache) -> None:
 
     Transient fetch errors are logged and retried on the next tick so a single
     failure never kills the feed.
+
+    The cache is pre-seeded with starting prices before this loop runs (see
+    :func:`start_market_data`), so we sleep one interval *before* the first
+    fetch. That avoids a redundant evolution at t=0 and gives consumers a
+    deterministic initial state (the seed prices) for the first interval.
     """
     while True:
+        await asyncio.sleep(source.poll_interval)
         try:
             quotes = await source.fetch()
             for ticker, price in quotes.items():
@@ -81,7 +111,6 @@ async def run_feed(source: MarketDataSource, cache: PriceCache) -> None:
             raise
         except Exception:
             logger.exception("Market-data fetch failed; retrying next tick")
-        await asyncio.sleep(source.poll_interval)
 
 
 def start_market_data() -> asyncio.Task | None:
@@ -96,10 +125,11 @@ def start_market_data() -> asyncio.Task | None:
     price provider registered, but the evolving feed loop is not launched — so
     prices stay frozen at their seed values. Returns ``None`` in that case.
     """
-    global _task
+    global _task, _source
 
     tickers = load_watchlist_tickers()
     source = create_source(tickers)
+    _source = source
 
     # Seed the cache so the first SSE read / trade fill has prices before the
     # first tick lands.
@@ -124,9 +154,10 @@ def start_market_data() -> asyncio.Task | None:
 
 async def stop_market_data() -> None:
     """Cancel the feed loop and unregister the price provider."""
-    global _task
+    global _task, _source
 
     set_price_provider(None)
+    _source = None
     if _task is None:
         return
     _task.cancel()

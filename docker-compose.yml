@@ -1,0 +1,18 @@
+# Optional convenience wrapper (SPEC §4). Production is a single container; this
+# just builds it, mounts the DB volume for persistence, and loads .env if present.
+services:
+  finally:
+    build: .
+    image: finally:latest
+    container_name: finally
+    ports:
+      - "8000:8000"
+    volumes:
+      - finally-db:/app/db
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped
+
+volumes:
+  finally-db:

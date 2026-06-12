@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../support/fixtures";
 import { gotoApp, getWatchlist } from "../support/helpers";
 
 // SPEC §12 — Add and remove a ticker from the watchlist.

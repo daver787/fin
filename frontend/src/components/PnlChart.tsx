@@ -75,7 +75,7 @@ export function PnlChart({ history }: { history: PortfolioSnapshot[] }) {
   return (
     <Panel title="P&L" className="min-h-0">
       {data.length < 2 ? (
-        <PlaceholderBody note="Awaiting portfolio history…" />
+        <PlaceholderBody note="Awaiting value history…" />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart

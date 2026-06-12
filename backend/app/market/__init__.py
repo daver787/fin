@@ -11,7 +11,7 @@ source produced the prices.
 
 from app.market.base import MarketDataSource, PriceUpdate
 from app.market.cache import PriceCache
-from app.market.service import get_cache, start_market_data, stop_market_data
+from app.market.service import add_ticker, get_cache, start_market_data, stop_market_data
 from app.market.simulator import GBMSimulator
 
 __all__ = [
@@ -19,6 +19,7 @@ __all__ = [
     "PriceUpdate",
     "PriceCache",
     "GBMSimulator",
+    "add_ticker",
     "get_cache",
     "start_market_data",
     "stop_market_data",

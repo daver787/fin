@@ -23,7 +23,7 @@ export default function Home() {
   // chart accumulates from the SSE stream (fin-novp); portfolio.history is the
   // portfolio value snapshots driving the P&L chart (fin-vc7p).
   const priceHistory = usePriceHistory(prices);
-  const { portfolio, history } = usePortfolio();
+  const { portfolio, history, refetch } = usePortfolio();
 
   // Shared selection state: clicking a ticker in the watchlist drives the main
   // chart (SPEC §10). Owned here so any region can read/update the selection.
@@ -82,12 +82,12 @@ export default function Home() {
           </div>
         </main>
 
-        {/* ChatSidebar exposes onActionsApplied(); the portfolio/watchlist
-            panels will pass a refresh callback once their data layers land. */}
-        <ChatSidebar />
+        {/* Chat auto-executes trades/watchlist changes server-side; refresh the
+            portfolio panels when it reports actions were applied. */}
+        <ChatSidebar onActionsApplied={refetch} />
       </div>
 
-      <TradeBar />
+      <TradeBar selected={selected} onTraded={refetch} />
     </div>
   );
 }

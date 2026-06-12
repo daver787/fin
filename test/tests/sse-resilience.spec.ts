@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../support/fixtures";
 import { gotoApp, waitForStream } from "../support/helpers";
 
 // SPEC §12 — SSE resilience: disconnect the stream and verify the client
